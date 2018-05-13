@@ -16,3 +16,14 @@ The DRR Worker Service:
 * Gets a new task. If no tasks left, shuts task consumer and looks to consume a new source message.
 
 The idea is to let us run through a large number of tasks without the overhead of loading up a entire source dataset for each one.
+
+## Configuration
+
+| Environment variable        |  Description
+| --------------------------- |  -----------
+| AWS_REGION                  | an AWS credential
+| AWS_SECRET_ACCESS_KEY       | an AWS credential
+| AWS_ACCESS_KEY_ID           | an AWS credential
+| SQS_SOURCE_QUEUE_URL        | the full url of the drr source queue
+| SQS_TASK_QUEUE_URL          | the full url of the drr task queue
+| SQS_TASK_QUEUE_URL          | the full url of the drr result queue

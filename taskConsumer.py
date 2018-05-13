@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import pandas as pd
-import json, time, boto3, io
+import json, time, boto3, os
 
 class TaskConsumer(object):
 
@@ -45,17 +45,17 @@ class TaskConsumer(object):
         sqs = boto3.client("sqs", region_name="eu-west-1")
 
         # TODO - securely get queue url
-        queue_url =
+        task_queue_url = os.getenv("SQS_TASK_QUEUE_URL")
 
         try:
-            msg = sqs.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=1)
+            msg = sqs.receive_message(QueueUrl=task_queue_url, MaxNumberOfMessages=1)
         except:
             # if the response contains no tasks, wait and retry
             time.sleep(self.cfg.checkForNewTaskWaitTime)
             self.retries += 1
             return
 
-        taskMsg = sqs.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=1)
+        taskMsg = sqs.receive_message(QueueUrl=task_queue_url, MaxNumberOfMessages=1)
 
         task = json.loads(taskMsg)
 
@@ -103,7 +103,7 @@ class TaskConsumer(object):
         sqs = boto3.client("sqs", region_name="eu-west-1")
 
         # TODO - securely get queue url
-        queue_url =
+        queue_url = os.getenv("SQS_RESULT_QUEUE_URL")
 
         jdump = json.dumps(result)
 

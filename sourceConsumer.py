@@ -3,7 +3,6 @@
 import boto3, datetime, time, json
 
 # Local Imports
-import config
 from taskConsumer import TaskConsumer
 
 
@@ -25,10 +24,9 @@ class sourceConsumer(object):
 
         sqs = boto3.client("sqs", region_name="eu-west-1")
 
-        # TODO - securely get queue url
-        queue_url =
+        source_queue_url = os.getenv("SQS_SOURCE_QUEUE_URL")
 
-        msg = sqs.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=1)
+        msg = sqs.receive_message(QueueUrl=source_queue_url, MaxNumberOfMessages=1)
 
         sourceDict = json.loads(msg["Messages"][0]["Body"])
 
@@ -38,7 +36,7 @@ class sourceConsumer(object):
         del consumer  # better to be safe
 
         sqs.delete_message(
-            QueueUrl=queue_url,
+            QueueUrl=source_queue_url,
             ReceiptHandle=msg["Messages"][0]["ReceiptHandle"]
         )
 
