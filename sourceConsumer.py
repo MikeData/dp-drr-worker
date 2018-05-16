@@ -1,6 +1,7 @@
 
 # Global imports
-import boto3, datetime, time, json
+import boto3, time, json, os
+from time import gmtime, strftime
 
 # Local Imports
 from taskConsumer import TaskConsumer
@@ -10,8 +11,7 @@ from taskConsumer import TaskConsumer
 class sourceConsumer(object):
 
     def __init__(self):
-        self.created = datetime.datetime.now()
-        self.cfg = config.newConfig()
+        self.created = strftime("%Y-%m-%d %H:%M:%S", gmtime())
 
         # TODO - not exacty subtle
         while True:
@@ -28,17 +28,21 @@ class sourceConsumer(object):
 
         msg = sqs.receive_message(QueueUrl=source_queue_url, MaxNumberOfMessages=1)
 
-        sourceDict = json.loads(msg["Messages"][0]["Body"])
+        if "Messages" in msg.keys():
+            sourceDict = msg["Messages"][0]["Body"]
 
-        consumer = TaskConsumer(sourceDict)
-        consumer.consume()
+            consumer = TaskConsumer(sourceDict)
+            consumer.consume()
 
-        del consumer  # better to be safe
+            del consumer  # better to be safe
 
-        sqs.delete_message(
-            QueueUrl=source_queue_url,
-            ReceiptHandle=msg["Messages"][0]["ReceiptHandle"]
-        )
+            sqs.delete_message(
+                QueueUrl=source_queue_url,
+                ReceiptHandle=msg["Messages"][0]["ReceiptHandle"]
+            )
+
+        else:
+            print("No source message found at: ", strftime("%Y-%m-%d %H:%M:%S", gmtime()))
 
 
 # Start

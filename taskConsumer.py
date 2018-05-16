@@ -2,6 +2,7 @@
 
 import pandas as pd
 import json, time, boto3, os
+from time import gmtime, strftime
 
 class TaskConsumer(object):
 
@@ -15,16 +16,20 @@ class TaskConsumer(object):
         self.dataFrame_initial = self.loadfile()
 
         # retries on looking for new jobs
+        self.checkForNewTaskRetries = 3
+        self.checkForNewTaskWaitTime = 2
         self.retries = 0
 
 
     def loadfile(self):
 
-        # TODO - chunks?
-        s3 = boto3.client('s3')
-        csv = s3.download_file('drr-import-bucket', self.sourceDict["source"], 'input.csv')
+        bucket = os.getenv("DRR_IMPORT_BUCKET")
 
-        return pd.read_csv(csv, dtype=str)
+       # TODO - chunks?
+        s3 = boto3.client('s3')
+        s3.download_file(bucket, self.sourceDict["Source"], 'input.csv')
+
+        return pd.read_csv('input.csv', dtype=str)
 
 
     # keep consuming as long as there's tasks to consume
@@ -32,7 +37,7 @@ class TaskConsumer(object):
 
         while True:
 
-            if self.retries == self.cfg.checkForNewTaskRetries:
+            if self.retries == self.checkForNewTaskRetries:
                 break
             else:
                 self.getTask()
@@ -44,18 +49,18 @@ class TaskConsumer(object):
 
         sqs = boto3.client("sqs", region_name="eu-west-1")
 
-        # TODO - securely get queue url
         task_queue_url = os.getenv("SQS_TASK_QUEUE_URL")
 
-        try:
-            msg = sqs.receive_message(QueueUrl=task_queue_url, MaxNumberOfMessages=1)
-        except:
-            # if the response contains no tasks, wait and retry
-            time.sleep(self.cfg.checkForNewTaskWaitTime)
+        taskMsg = sqs.receive_message(QueueUrl=task_queue_url, MaxNumberOfMessages=1)
+
+        if "Messages" in taskMsg.keys():
+            taskMsg = taskMsg["Messages"][0]["Body"]
+
+        else:
+            print("No task message found at: ", strftime("%Y-%m-%d %H:%M:%S", gmtime()))
+            time.sleep(self.checkForNewTaskWaitTime)
             self.retries += 1
             return
-
-        taskMsg = sqs.receive_message(QueueUrl=task_queue_url, MaxNumberOfMessages=1)
 
         task = json.loads(taskMsg)
 
@@ -85,7 +90,6 @@ class TaskConsumer(object):
 
 
         structureSize = 1
-        print(uniqueItemsPerDimension)
         for dimCount in uniqueItemsPerDimension:
             structureSize *= dimCount
 
@@ -94,7 +98,8 @@ class TaskConsumer(object):
 
         # {"url":s3/somefileorother/data, "sparsityAfter: 90%, rowsAfter:1000, task:{"dim1":[item3, item2], dim2:[item4]}}
         result = {
-            "source": self.sourceDict["url"],
+            "source": self.sourceDict["Source"],
+            "sourceId": self.sourceDict["SourceId"],
             "sparsityAfter":sparsity,
             "rowsAfter":rows,
             "task":task
