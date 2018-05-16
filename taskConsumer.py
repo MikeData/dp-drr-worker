@@ -51,10 +51,10 @@ class TaskConsumer(object):
 
         task_queue_url = os.getenv("SQS_TASK_QUEUE_URL")
 
-        taskMsg = sqs.receive_message(QueueUrl=task_queue_url, MaxNumberOfMessages=1)
+        msg = sqs.receive_message(QueueUrl=task_queue_url, MaxNumberOfMessages=1)
 
-        if "Messages" in taskMsg.keys():
-            taskMsg = taskMsg["Messages"][0]["Body"]
+        if "Messages" in msg.keys():
+            taskMsg = msg["Messages"][0]["Body"]
 
         else:
             print("No task message found at: ", strftime("%Y-%m-%d %H:%M:%S", gmtime()))
@@ -66,6 +66,11 @@ class TaskConsumer(object):
 
         self.analyse(task)
 
+        sqs.delete_message(
+            QueueUrl=task_queue_url,
+            ReceiptHandle=msg["Messages"][0]["ReceiptHandle"]
+        )
+
 
     # Analyse the dataframe - generate one result
     def analyse(self, task):
@@ -75,6 +80,10 @@ class TaskConsumer(object):
 
         # for each specified dimension
         for dimension in task.keys():
+
+            # if its a single item, listify it
+            if type(task[dimension]) != list:
+                task[dimension] = [task[dimension]]
 
             # drop each specified item from the dataframe
             for item in task[dimension]:
@@ -116,4 +125,6 @@ class TaskConsumer(object):
 
         # shouldn't be necessary, but better safe
         del df
+
+
 

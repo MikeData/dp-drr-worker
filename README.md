@@ -27,3 +27,4 @@ The idea is to let us run through a large number of tasks without the overhead o
 | SQS_SOURCE_QUEUE_URL        | the full url of the drr source queue
 | SQS_TASK_QUEUE_URL          | the full url of the drr task queue
 | SQS_TASK_QUEUE_URL          | the full url of the drr result queue
+| DRR_IMPORT_BUCKET           | the name of the import bucket
